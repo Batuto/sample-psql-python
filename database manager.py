@@ -3,151 +3,70 @@
 import psycopg2
 import logging
 from pprint import pprint
-from os import system as sys
+from os import system
+import sys
 
+
+def connection():
+    dbname = raw_input("Introduzca el nombre de la base de datos: ")
+    user = raw_input("Introduzca el nombre de usuario: ")
+    pwd = 'password'
+    host = raw_input("Introduzca el host: ")
+    try:
+        db_usr = "dbname={0} user={1} host={2} password={3}".format(
+            dbname, user, host, pwd)
+        conn = psycopg2.connect(db_usr)
+    except Exception:
+        pprint("Error:")
+        logging.basicConfig(format="%(message)s")
+        logging.warning("Unable to connect")
+        sys.exit(1)
+    return conn
+
+def create_tables():
+    conn = connection()
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE producto(producto_id int, primary key(producto_id), nombre varchar(50), departamento_id int, descripcion text, perecedero bool, proveedor_id int, precio_compra float, precio_venta float);")
+    cur.execute("CREATE TABLE departamento(departamento_id int, primary key(departamento_id), nombre varchar(20));")
+    cur.execute("CREATE TABLE proveedor(proveedor_id int, primary key(proveedor_id), nombre varchar(30), telefono char(10));")
+    conn.commit()
+    sys.exit()
 
 def main():
     while True:
-        dbname = 'tienda'
-        user = raw_input("Introduzca el nombre de usuario: ") 
-        pwd = 'password'
-        #host = 'localhost'
-        host = raw_input("Introduzca el host: ")
-
-        try:
-            db_usr = "dbname={0} user={1} host={2} password={3}".format(
-                dbname, user, host, pwd)
-            conn = psycopg2.connect(db_usr)
-
-        except Exception:
-            pprint("Error:")
-            logging.basicConfig(format="%(message)s")
-            logging.warning("Unable to connect")
-            return
-
+        conn = connection()
         cur = conn.cursor()
-        opciones_depa = {
-            1: 'lacteos',
-            2: 'perfumeria',
-            3: 'jardin',
-            4: 'abarrotes',
+        system('clear')
+        opcion = int(raw_input(
+            """Introduzca su selección a desplegar:
+            1 - Productos agrupados por vendedor.
+            2 - Proveedores que proveen un determinado producto.
+            3 - Departamento asignado a un producto.
+            4 - Proveedores que proveen a un determinado departamento.
+            5 - Los productos en un departamento.
+            6 - Los prodcutos agrupados por departamento.
+            7 - Los productos peredeceros en un departamento determinado.
+            8 - Los proveedores que proveen productos perecederos.
+            9 - La cantidad de productos que provee un proveedor."""
+        ))
+        opcion_dict = {
+            1: "SELECT producto.nombre as Nombre, proveedor.nombre as Proveedor from producto join proveedor on producto.proveedor_id=proveedor.proveedor_id group by proveedor.nombre, producto.nombre;",
+            2: "SELECT proveedor.nombre as Proveedor from producto join proveedor on producto.proveedor_id=proveedor.proveedor_id WHERE producto.nombre={};".format(raw_input("Introduzca el nombre de producto a buscar: ")),
+            3: "SELECT departamento.nombre as Departamento from producto join departamento on producto.departamento_id=departamento.departamento_id WHERE producto.nombre={};".format(raw_input("Introduzca el nombre de producto a buscar: ")),
+            4: "SELECT proveedor.nombre as Proveedor from producto join proveedor on producto.proveedor_id=proveedor.proveedor_id join departamento on producto.departamento_id=departamento.departamento_id where departamento.nombre={};".format(raw_input("Introduzca el nombre de departamento a buscar: ")),
+            5: "SELECT producto.nombre as Producto from producto join departamento on producto.departamento_id=departamento.departamento_id WHERE departamento.nombre={};".format(raw_input("Introduzca el nombre de departamento a buscar: ")),
+            6: "SELECT producto.nombre as Producto from producto join departamento on producto.departamento_id=departamento.departamento_id group by departamento.nombre;",
+            7: "SELECT producto.nombre as Producto from producto join departamento on producto.departamento_id=departamento.departamento_id WHERE producto.perecedero=true AND departamento.nombre={};".format(raw_input("Introduzca el nombre de departamento a buscar: ")),
+            8: "SELECT proveedor.nombre as Proveedor from producto join proveedor on producto.proveedor_id=proveedor.proveedor_id WHERE producto.perecedero=true;",
+            9: "SELECT count(*) as Productos, proveedor.nombre as Proveedor from producto join proveedor on producto.proveedor_id=proveedor.proveedor_id group by proveedor.proveedor_id;",
         }
-        opciones_ac = {
-            1: 'consultar',
-            2: 'insertar',
-            3: 'modificar',
-            4: 'perecedero',
-            5: 'descripcion',
-            0: 'salir',
-        }
-        departamento = int(raw_input(
-            """Introduzca el número del departamento a acceder:
-            1 - Lácteos
-            2 - Perfumería
-            3 - Jardín
-            4 - Abarrotes
-
-    >>"""
-            ))
-        sys('clear')
-        accion = int(raw_input(
-            """Introduzca la opción deseada:
-            1 - Consultar productos
-            2 - Insertar registro
-            3 - Modificar nombre de producto
-            4 - Mostrar perecederos
-            5 - Modificar descripción
-            0 - Regresar
-
-    >>"""
-            ))
-        sys('clear')
-
-        if opciones_ac[accion] == 'consultar':
-            try:
-                cur.execute("SELECT codigo, nombre,\
-                            descripcion FROM productos\
-                            WHERE departamento = '{}';".format(
-                                opciones_depa[departamento]))
-                print "Código\tNombre\t\tDescripción\n"
-                for x in cur.fetchall():
-                    print x[0],"\t",x[1],"\t\t",x[2]
-            except:
-                print "Error inesperado\n"
-
-        elif opciones_ac[accion] == 'insertar':
-            try:
-
-                nombre = raw_input("Introduce el nombre del producto:\n")
-                departamento = raw_input("Introduce el departamento:\n")
-                descripcion = raw_input("Introduce la descripción:\n")
-                perecedero = 's' in raw_input("Perecedero(s/n)\n").lower()
-                proveedor = raw_input("Introduce el proveedor(10 char)\n")[:10]
-                cur.execute("INSERT INTO productos(nombre,departamento,descripcion,perecedero,proveedor)\
-                            values('{0}','{1}','{2}',{3},'{4}');".format(
-                                nombre,departamento,descripcion,perecedero,proveedor))
-                conn.commit()
-                cur.close()
-                conn.close()
-            except:
-                print "Error inesperado\n"
-
-        elif opciones_ac[accion] == 'modificar':
-            codigo = int(
-                raw_input('Introduzca el código del producto a modificar:\n'))
-            nombre = raw_input(
-                "Introduzca el nuevo nombre del producto:\n") or ""
-            departamento = raw_input(
-                "Introduzca el nuevo nombre de departamento:\n") or ""
-            descripcion = raw_input(
-                "Introduzca la nueva descripción del producto:\n") or ""
-
-            if nombre:
-                nombre = "nombre='{}'".format(nombre)
-                cur.execute("UPDATE productos SET {0} WHERE departamento='{1}'\
-                            AND codigo={2};".format(
-                                nombre, opciones_depa[departamento], codigo))
-                conn.commit()
-                cur.close()
-                conn.close()
-        elif opciones_ac[accion] == 'perecedero':
-            try:
-                cur.execute("SELECT codigo,nombre\
-                            FROM productos\
-                            WHERE perecedero=True\
-                            AND departamento='{0}';".format(
-                                opciones_depa[departamento]))
-                print "Código\tNombre\n"
-                for x in cur.fetchall():
-                    print x[0],"\t",x[1]
-            except:
-                print "Error inesperado\n"
-        elif opciones_ac[accion] == 'descripcion':
-            codigo = int(
-                raw_input('Introduzca el código del producto a modificar:\n'))
-            descripcion = raw_input(
-                "Introduzca la nueva descripción del producto:\n") or ""
-            if descripcion:
-                descripcion = "descripcion='{}'".format(descripcion)
-                cur.execute(
-                    "UPDATE productos SET {0} WHERE codigo={1};".format(
-                        descripcion, codigo))
-                conn.commit()
-                cur.close()
-                conn.close()
-
-
-        elif opciones_ac[accion] == 'salir':
-            sys('clear')
-            print "\nPrograma terminado.\n"
-            cur.close()
-            conn.close()
-            return
-
-        raw_input("\n\n\n\tPresione enter para continuar...")
-        sys('clear')
-        continue
+        cur.execute(opcion_dict[opcion])
+        system('clear')
+        pprint(cur.fetchall())
+        conn.commit()
+        cur.close()
+        conn.close()
 
 if __name__ == '__main__':
-    sys('clear')
+    system('clear')
     main()
