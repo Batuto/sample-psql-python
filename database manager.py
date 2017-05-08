@@ -82,7 +82,7 @@ def main():
         table = AsciiTable(table_data)
         print table.table
         guardar = raw_input("\n\n\t¿Desea guardar esta consulta?")
-        if guardar[:2].upper() in 'SI':
+        if guardar[:2].upper() == 'SI':
             timestr = time.strftime("%Y%m%d-%H%M%S")
             with open(timestr + '.csv', 'wb') as csvfile:
                 file_write = csv.writer(csvfile) # , delimiter= ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
