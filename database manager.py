@@ -110,4 +110,5 @@ if __name__ == '__main__':
         #logging.basicConfig(format="%(message)s")
         logging.info("Terminating program...")
         print "\n\n\t[x] Terminating program...\n"
+        system('pg_dump tienda > %s_dump_.sql' % (time.strftime('%m-%d-%Y')))
         sys.exit()
