@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import psycopg2
 import logging
+import getpass
 from pprint import pprint
 from os import system
 import sys
@@ -14,10 +15,18 @@ conn = False
 cur = False
 
 def connection():
-    dbname = raw_input("Introduzca el nombre de la base de datos: ")
-    user = raw_input("Introduzca el nombre de usuario: ")
-    pwd = 'password'
-    host = raw_input("Introduzca el host: ")
+    try:
+        dbname = raw_input("Introduzca el nombre de la base de datos: ")
+        user = raw_input("Introduzca el nombre de usuario: ")
+        pwd = getpass.getpass('Introduce tu contraseña:')
+        host = raw_input("Introduzca el host: ")
+        log_file = open('log', 'a')
+        log_file.write('%s %s\n' % (user, time.ctime()))
+        log_file.close()
+    except KeyboardInterrupt:
+        system('clear')
+        print "\n\n\t[x] Terminating program...\n"
+        exit(1)
     try:
         db_usr = "dbname={0} user={1} host={2} password={3}".format(
             dbname, user, host, pwd)
